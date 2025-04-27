@@ -55,9 +55,21 @@ rl.on('line', async (line) => {
     const message = JSON.parse(line);
     const apiKey = process.env.JSON2VIDEO_API_KEY || message.apiKey;
     const response = await handleMCPMessage(message, apiKey);
-    // Sonucu MCP formatında stdout'a yaz
-    process.stdout.write(JSON.stringify(response) + '\n');
+
+    // JSON-RPC 2.0 cevabı
+    process.stdout.write(JSON.stringify({
+      jsonrpc: "2.0",
+      id: message.id,
+      result: response
+    }) + '\n');
   } catch (err) {
-    process.stderr.write(JSON.stringify({ error: err.message }) + '\n');
+    // JSON-RPC 2.0 hata cevabı
+    let id = undefined;
+    try { id = JSON.parse(line).id; } catch {}
+    process.stdout.write(JSON.stringify({
+      jsonrpc: "2.0",
+      id,
+      error: { code: -32000, message: err.message }
+    }) + '\n');
   }
 }); 
