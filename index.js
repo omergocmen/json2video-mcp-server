@@ -10,15 +10,29 @@ const rl = readline.createInterface({
   terminal: false
 });
 
+// Sunucu başlatılırken serverInfo mesajı gönder
+process.stdout.write(JSON.stringify({
+  jsonrpc: "2.0",
+  method: "serverInfo",
+  params: {
+    protocolVersion: "2.0",
+    capabilities: {},
+    serverInfo: {
+      name: "json2video-mcp",
+      version: "1.0.0"
+    }
+  }
+}) + '\n');
+
 // MCP mesajlarını işleyen fonksiyon
 async function handleMCPMessage(message, apiKey) {
-  const { action, data } = message;
+  const { method, params } = message;
 
   if (!apiKey) {
-    return { error: "apiKey is required" };
+    throw new Error("apiKey is required");
   }
 
-  if (action === "generate") {
+  if (method === "generate") {
     // Video oluştur
     const response = await fetch('https://api.json2video.com/v2/movies', {
       method: 'POST',
@@ -26,16 +40,16 @@ async function handleMCPMessage(message, apiKey) {
         'x-api-key': apiKey,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(params)
     });
     const result = await response.json();
     return result;
-  } else if (action === "get") {
+  } else if (method === "get") {
     // Video bilgisini getir
-    if (!data || !data.project) {
-      return { error: "project id is required in data.project" };
+    if (!params || !params.project) {
+      throw new Error("project id is required in params.project");
     }
-    const url = `https://api.json2video.com/v2/movies?project=${data.project}`;
+    const url = `https://api.json2video.com/v2/movies?project=${params.project}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -45,27 +59,26 @@ async function handleMCPMessage(message, apiKey) {
     const result = await response.json();
     return result;
   } else {
-    return { error: "Unknown action. Use 'generate' or 'get'." };
+    throw new Error("Unknown method. Use 'generate' or 'get'.");
   }
 }
 
 // Her satırda bir MCP mesajı bekliyoruz
 rl.on('line', async (line) => {
+  let message, id;
   try {
-    const message = JSON.parse(line);
+    message = JSON.parse(line);
+    id = message.id;
     const apiKey = process.env.JSON2VIDEO_API_KEY || message.apiKey;
-    const response = await handleMCPMessage(message, apiKey);
+    const result = await handleMCPMessage(message, apiKey);
 
     // JSON-RPC 2.0 cevabı
     process.stdout.write(JSON.stringify({
       jsonrpc: "2.0",
-      id: message.id,
-      result: response
+      id,
+      result
     }) + '\n');
   } catch (err) {
-    // JSON-RPC 2.0 hata cevabı
-    let id = undefined;
-    try { id = JSON.parse(line).id; } catch {}
     process.stdout.write(JSON.stringify({
       jsonrpc: "2.0",
       id,
