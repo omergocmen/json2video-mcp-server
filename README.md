@@ -114,77 +114,148 @@ Add this to your `mcp.json` or similar config:
 Create a customizable video project with scenes and elements.
 
 **Description:**
-Creates a customizable video project. Each project can contain multiple scenes, and each scene can contain various elements such as text, images, video, audio, components, and more. Video generation is asynchronous; use the returned project ID to check status.
+Creates a video project using the json2video API. Each project can contain multiple scenes, and each scene can contain various elements such as text, images, video, audio, components, HTML, voice, audiogram, and subtitles. Video generation is asynchronous; use the returned project ID to check status. See https://json2video.com/docs/api/ for full schema and more examples.
 
 **Input Schema:**
 ```json
 {
-  "id": "string (optional)",
-  "comment": "string (optional)",
-  "width": 1920,
-  "height": 1080,
-  "quality": "medium",
-  "draft": false,
-  "resolution": "custom",
-  "fps": 25,
-  "settings": {},
+  "id": "string (optional, unique identifier for the movie)",
+  "comment": "string (optional, project description)",
   "cache": true,
+  "client_data": {},
+  "draft": true,
+  "quality": "high", // one of: low, medium, high
+  "resolution": "custom", // one of: sd, hd, full-hd, squared, instagram-story, instagram-feed, twitter-landscape, twitter-portrait, custom
+  "width": 1920, // required if resolution is custom
+  "height": 1080, // required if resolution is custom
   "variables": {},
+  "elements": [ /* global elements, see below for examples */ ],
   "scenes": [
     {
-      "id": "string (optional)",
+      "id": "string (optional, unique scene id)",
       "comment": "string (optional)",
-      "elements": [
-        { "id": "string", "type": "text", "text": "Hello world", "duration": 5 },
-        { "id": "string", "type": "image", "src": "https://...", "width": 1620, "height": 1080, "x": 0, "y": 0 },
-        { "id": "string", "type": "voice" },
-        { "id": "string", "type": "html" },
-        { "id": "string", "type": "video" },
-        { "id": "string", "type": "audiogram" },
-        { "id": "string", "type": "component", "component": "basic/000", "settings": { /* ... */ } },
-        { "id": "string", "type": "subtitles" }
-      ]
+      "background_color": "#000000",
+      "cache": true,
+      "condition": "string (optional)",
+      "duration": -1,
+      "variables": {},
+      "elements": [ /* see element examples below */ ]
     }
   ],
-  "elements": [],
   "apiKey": "string (optional)"
+}
+```
+
+**Element Types & Examples:**
+
+- **Text Element:**
+```json
+{
+  "type": "text",
+  "text": "Hello world",
+  "duration": 5,
+  "settings": { "font-size": "60px", "color": "#FF0000" }
+}
+```
+- **Image Element:**
+```json
+{
+  "type": "image",
+  "src": "https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg",
+  "width": 1620,
+  "height": 1080,
+  "x": 0,
+  "y": 0
+}
+```
+- **Video Element:**
+```json
+{
+  "type": "video",
+  "src": "https://example.com/path/to/my/video.mp4",
+  "duration": 7.3
+}
+```
+- **Component Element:**
+```json
+{
+  "type": "component",
+  "component": "basic/001",
+  "settings": {
+    "headline": { "text": "Lorem ipsum", "color": "white" },
+    "body": { "text": "Dolor sit amet" }
+  }
+}
+```
+- **HTML Element:**
+```json
+{
+  "type": "html",
+  "html": "<h1>Hello world</h1>",
+  "width": 800,
+  "height": 600
+}
+```
+- **Audio Element:**
+```json
+{
+  "type": "audio",
+  "src": "https://example.com/audio.mp3",
+  "duration": 5
+}
+```
+- **Voice Element:**
+```json
+{
+  "type": "voice",
+  "text": "This is a voiceover.",
+  "voice": "en-US-Wavenet-D"
+}
+```
+- **Audiogram Element:**
+```json
+{
+  "type": "audiogram",
+  "color": "#00FF00",
+  "amplitude": 5
+}
+```
+- **Subtitles Element:**
+```json
+{
+  "type": "subtitles",
+  "captions": "1\n00:00:00,000 --> 00:00:02,000\nHello world!"
 }
 ```
 
 **Example Input:**
 ```json
 {
-  "id": "q663vmm2",
-  "comment": "Default movie",
-  "width": 1920,
-  "height": 1080,
-  "quality": "medium",
-  "draft": false,
+  "comment": "MyProject",
+  "resolution": "full-hd",
   "scenes": [
     {
-      "id": "qfynlmrz",
-      "comment": "Scene 1",
       "elements": [
-        { "id": "qppjjvl6", "type": "text", "text": "Hello world", "duration": 5 },
-        { "id": "q9xyi2cs", "type": "image", "src": "https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg", "width": 1620, "height": 1080, "x": 0, "y": 0 },
-        { "id": "qvc2v927", "type": "voice" },
-        { "id": "q7olcpnw", "type": "html" },
-        { "id": "qmknt9fw", "type": "video" },
-        { "id": "qyy10mux", "type": "audiogram" },
-        { "id": "q0nj2s7l", "type": "component", "component": "basic/000", "settings": { "headline": { "text": "Lorem ipsum dolor sit amet", "color": "white", "font-family": "Baskervville", "font-weight": "400", "font-size": "6vw" }, "body": { "text": "Consectetur adipiscing elit", "color": "#CCCCCC", "font-family": "Lato", "font-weight": "300", "font-size": "3vw" }, "card": { "vertical-align": "center", "text-align": "center", "width": "80%", "horizontal-align": "center" } } },
-        { "id": "qeyqfq5l", "type": "subtitles" }
+        { "type": "video", "src": "https://example.com/path/to/my/video.mp4" },
+        { "type": "text", "text": "Hello world", "duration": 5 },
+        { "type": "image", "src": "https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg", "width": 1620, "height": 1080, "x": 0, "y": 0 },
+        { "type": "component", "component": "basic/001", "settings": { "headline": { "text": "Lorem ipsum" } } },
+        { "type": "html", "html": "<h1>Hello world</h1>", "width": 800, "height": 600 },
+        { "type": "audio", "src": "https://example.com/audio.mp3", "duration": 5 },
+        { "type": "voice", "text": "This is a voiceover.", "voice": "en-US-Wavenet-D" },
+        { "type": "audiogram", "color": "#00FF00", "amplitude": 5 },
+        { "type": "subtitles", "captions": "1\n00:00:00,000 --> 00:00:02,000\nHello world!" }
       ]
     }
-  ],
-  "elements": [],
-  "resolution": "custom",
-  "fps": 25,
-  "settings": {},
-  "cache": true,
-  "variables": {},
-  "apiKey": "your_api_key_here"
+  ]
 }
 ```
+
+**Notes for Users:**
+- Each element type has its own required and optional properties. See https://json2video.com/docs/api/ for full details.
+- You can mix and match element types in scenes and globally.
+- For custom resolutions, set both `width` and `height`.
+- Use the returned project ID to check video status with `get_video_status`.
 
 **Output:**
 - Returns a project ID to be used with `get_video_status`.

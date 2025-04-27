@@ -17,7 +17,7 @@ class Json2VideoServer {
     this.server = new Server(
       {
         name: 'json2video-mcp',
-        version: '1.1.4',
+        version: '1.1.5',
       },
       {
         capabilities: {
@@ -40,57 +40,65 @@ class Json2VideoServer {
       tools: [
         {
           name: 'generate_video',
-          description: 'Creates a customizable video project. Each project can contain multiple scenes, and each scene can contain various elements such as text, images, video, audio, components, and more. Example input: { "id": "q663vmm2", "width": 1920, "height": 1080, "scenes": [ { "elements": [ { "type": "text", "text": "Hello world", "duration": 5 } ] } ] }',
+          description: 'Creates a video project using the json2video API. Each project can contain multiple scenes, and each scene can contain various elements such as text, images, video, audio, components, HTML, voice, audiogram, and subtitles. See https://json2video.com/docs/api/ for full schema.',
           inputSchema: {
             type: 'object',
-            description: 'Input for creating a video project. See the "scenes" array for the main content.',
+            description: 'Input for creating a video project. The main content is in the "scenes" array. See https://json2video.com/docs/api/ for full schema and examples.',
             properties: {
-              id: { type: 'string', description: 'Unique identifier for the movie project.' },
+              id: { type: 'string', description: 'Unique identifier for the movie project. If not provided, a random string will be generated.' },
               comment: { type: 'string', description: 'A comment or description for the movie project.' },
-              width: { type: 'integer', description: 'Width of the output video in pixels.' },
-              height: { type: 'integer', description: 'Height of the output video in pixels.' },
-              quality: { type: 'string', description: 'Video quality. Possible values: "low", "medium", "high".' },
-              draft: { type: 'boolean', description: 'If true, the video will be rendered as a draft (faster, lower quality).' },
-              resolution: { type: 'string', description: 'Preset resolution, e.g. "custom", "instagram-story", "full-hd".' },
-              fps: { type: 'integer', description: 'Frames per second for the output video.' },
-              settings: { type: 'object', description: 'Additional global settings for the video.' },
-              cache: { type: 'boolean', description: 'If true, enables caching for faster repeated renders.' },
-              variables: { type: 'object', description: 'Global variables for use in components or dynamic content.' },
+              cache: { type: 'boolean', description: 'Use the cached version of the movie if available. Default: true.' },
+              client_data: { type: 'object', description: 'Key-value pairs included in the response and webhooks. Used to pass information to later workflow steps.' },
+              draft: { type: 'boolean', description: 'If true, adds a watermark to the movie. Free plans must set draft to true.' },
+              quality: { type: 'string', description: 'Quality of the final rendered movie. Use for speed/quality tradeoff.', enum: ['low', 'medium', 'high'], default: 'high' },
+              resolution: { type: 'string', description: 'Preset resolution. Use "custom" to set width/height manually.', enum: ['sd', 'hd', 'full-hd', 'squared', 'instagram-story', 'instagram-feed', 'twitter-landscape', 'twitter-portrait', 'custom'], default: 'custom' },
+              width: { type: 'integer', description: 'Width of the movie (pixels). Only if resolution is "custom". Min: 50, Max: 3840.' },
+              height: { type: 'integer', description: 'Height of the movie (pixels). Only if resolution is "custom". Min: 50, Max: 3840.' },
+              variables: { type: 'object', description: 'Global variables for use in templates/components. Variable names: letters, numbers, underscores.' },
+              elements: { type: 'array', description: 'Global elements not tied to a specific scene. Each element can be of type video, image, text, html, component, audio, voice, audiogram, subtitles.', items: { type: 'object', description: 'Element object. See element schemas below.' } },
               scenes: {
                 type: 'array',
                 description: 'List of scenes in the video. Each scene contains an array of elements.',
                 items: {
                   type: 'object',
+                  description: 'Scene object.',
                   properties: {
                     id: { type: 'string', description: 'Unique identifier for the scene.' },
                     comment: { type: 'string', description: 'Description or comment for the scene.' },
+                    background_color: { type: 'string', description: 'Hex color or "transparent". Default: #000000.' },
+                    cache: { type: 'boolean', description: 'Use cached version of the scene if available.' },
+                    condition: { type: 'string', description: 'Condition for rendering the scene. If false/empty, scene is skipped.' },
+                    duration: { type: 'number', description: 'Scene duration in seconds. -1 means auto.' },
+                    variables: { type: 'object', description: 'Local variables for the scene.' },
                     elements: {
                       type: 'array',
-                      description: 'List of elements in the scene. Each element can be text, image, video, etc.',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          id: { type: 'string', description: 'Unique identifier for the element.' },
-                          type: { type: 'string', description: 'Element type. E.g. "text", "image", "video", "voice", "html", "audiogram", "component", "subtitles".' },
-                          text: { type: 'string', description: 'Text content (for type "text").' },
-                          src: { type: 'string', description: 'Source URL (for type "image" or "video").' },
-                          duration: { type: 'number', description: 'Duration in seconds (for timed elements).' },
-                          width: { type: 'number', description: 'Width of the element.' },
-                          height: { type: 'number', description: 'Height of the element.' },
-                          x: { type: 'number', description: 'X position of the element.' },
-                          y: { type: 'number', description: 'Y position of the element.' },
-                          component: { type: 'string', description: 'Component type (for type "component").' },
-                          settings: { type: 'object', description: 'Component-specific settings (for type "component").' }
-                        }
-                      }
+                      description: 'List of elements in the scene. Each element can be of type video, image, text, html, component, audio, voice, audiogram, subtitles.',
+                      items: { type: 'object', description: 'Element object. See element schemas below.' }
                     }
-                  }
+                  },
+                  required: ['elements']
                 }
               },
-              elements: { type: 'array', description: 'Global elements not tied to a specific scene.' },
               apiKey: { type: 'string', description: 'json2video API key (optional, can also be set as environment variable JSON2VIDEO_API_KEY)' },
             },
-            required: ['scenes']
+            required: ['scenes'],
+            examples: [
+              {
+                comment: 'MyProject',
+                resolution: 'full-hd',
+                scenes: [
+                  {
+                    elements: [
+                      {
+                        type: 'video',
+                        src: 'https://example.com/path/to/my/video.mp4'
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            // For LLMs: See https://json2video.com/docs/api/ for full details on each element type (video, image, text, html, component, audio, voice, audiogram, subtitles). Each element type has its own properties. For example, a text element requires "type: text" and "text" fields, a video element requires "type: video" and "src" fields, etc.
           }
         },
         {
