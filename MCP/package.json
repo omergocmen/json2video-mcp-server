@@ -1,0 +1,12 @@
+{
+  "name": "json2video-mcp",
+  "version": "1.0.0",
+  "main": "index.js",
+  "bin": {
+    "json2video-mcp": "./index.js"
+  },
+  "dependencies": {
+    "uuid": "^9.0.0",
+    "node-fetch": "^2.6.7"
+  }
+} 
