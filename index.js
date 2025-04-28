@@ -17,7 +17,7 @@ class Json2VideoServer {
     this.server = new Server(
       {
         name: 'json2video-mcp',
-        version: '1.2.0',
+        version: '1.2.1',
       },
       {
         capabilities: {
@@ -699,7 +699,7 @@ class Json2VideoServer {
                 "fps": 25,
                 "settings": {},
                 "cache": true
-              }{
+              },{
                 "id": "qd56dylt",
                 "comment": "Default movie",
                 "width": 1080,
@@ -1513,14 +1513,14 @@ class Json2VideoServer {
         }
 
         if (request.params.name === 'generate_video') {
-          console.error(`[API] Generating video with scenes: ${JSON.stringify(args.scenes)}`);
+          console.error(`[API] Generating video with args: ${JSON.stringify(args)}`);
           const response = await fetch('https://api.json2video.com/v2/movies', {
             method: 'POST',
             headers: {
               'x-api-key': apiKey,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ scenes: args.scenes })
+            body: JSON.stringify(args)
           });
           const result = await response.json();
 
@@ -1587,4 +1587,4 @@ class Json2VideoServer {
 }
 
 const server = new Json2VideoServer();
-server.run().catch(console.error); 
+server.run().catch(console.error);
