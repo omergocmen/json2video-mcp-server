@@ -1,6 +1,6 @@
 {
   "name": "json2video-mcp",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Model Context Protocol (MCP) server for json2video API integration.",
   "type": "module",
   "main": "index.js",
@@ -11,8 +11,9 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.4.1",
-    "node-fetch": "^2.6.7"
+    "@modelcontextprotocol/sdk": "1.0.1",
+    "@types/node-fetch": "^2.6.12",
+    "node-fetch": "^3.3.2"
   },
   "keywords": ["mcp", "json2video", "video", "llm", "server"],
   "author": "Ömer Göçmen",
