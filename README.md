@@ -302,3 +302,103 @@ Retrieves the status or result of a previously started video generation job. Not
   }
 }
 ```
+
+#### 3. Create Template (`create_template`)
+
+Create a new template in json2video.
+
+**Description:**
+Creates a new template with a given name and optional description.
+
+**Input Schema:**
+```json
+{
+  "name": "string (required, name of the template)",
+  "description": "string (optional, description of the template)",
+  "apiKey": "string (optional)"
+}
+```
+
+**Example Input:**
+```json
+{
+  "name": "MyTemplate",
+  "description": "A reusable video template."
+}
+```
+
+**Output:**
+- Returns the template ID if successful.
+
+#### 4. Get Template (`get_template`)
+
+Get template details from json2video.
+
+**Description:**
+Retrieves details of a template by its name.
+
+**Input Schema:**
+```json
+{
+  "name": "string (required, name of the template)",
+  "apiKey": "string (optional)"
+}
+```
+
+**Example Input:**
+```json
+{
+  "name": "MyTemplate"
+}
+```
+
+**Output:**
+```json
+{
+    "updated_at": "YYYY-MM-DDTHH:MM:SSZ",
+    "created_at": "YYYY-MM-DDTHH:MM:SSZ",
+    "movie": "{\"id\":\"template1\",\"comment\":\"Example template\",\"resolution\":\"full-hd\",\"quality\":\"high\",\"scenes\":[{\"id\":\"scene1\",\"comment\":\"Scene 1\",\"elements\":[]}],\"elements\":[],\"width\":1920,\"height\":1080}",
+    "name": "MyTemplate",
+    "id": "MyTemplate_ID"
+  }
+```
+
+#### 5. List Templates (`list_templates`)
+
+List all available templates from json2video.
+
+**Description:**
+Lists all templates available to the user.
+
+**Input Schema:**
+```json
+{
+  "apiKey": "string (optional)"
+}
+```
+
+**Example Input:**
+```json
+{
+}
+```
+
+**Output:**
+```json
+[
+  {
+    "updated_at": "YYYY-MM-DDTHH:MM:SSZ",
+    "created_at": "YYYY-MM-DDTHH:MM:SSZ",
+    "movie": "{\"id\":\"template1\",\"comment\":\"Example template\",\"resolution\":\"full-hd\",\"quality\":\"high\",\"scenes\":[{\"id\":\"scene1\",\"comment\":\"Scene 1\",\"elements\":[]}],\"elements\":[],\"width\":1920,\"height\":1080}",
+    "name": "MyTemplate1",
+    "id": "TEMPLATE_ID_1"
+  },
+  {
+    "updated_at": "YYYY-MM-DDTHH:MM:SSZ",
+    "created_at": "YYYY-MM-DDTHH:MM:SSZ",
+    "movie": "{\"id\":\"template2\",\"resolution\":\"instagram-story\",\"quality\":\"medium\",\"scenes\":[{\"id\":\"scene2\",\"comment\":\"Scene 2\",\"elements\":[]}],\"elements\":[],\"comment\":\"Another template\"}",
+    "name": "MyTemplate2",
+    "id": "TEMPLATE_ID_2"
+  }
+]
+```
