@@ -10,6 +10,8 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import fetch from 'node-fetch';
 
+const API_BASE = 'https://api.json2video.com/v2';
+
 class Json2VideoServer {
   constructor() {
     console.error('[Setup] Initializing json2video MCP server...');
@@ -1490,13 +1492,48 @@ class Json2VideoServer {
             },
             required: ['project']
           }
+        },
+        {
+          name: 'create_template',
+          description: 'Create a new template in json2video',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              apiKey: { type: 'string', description: 'json2video API key (optional, can also be set as environment variable JSON2VIDEO_API_KEY)' },
+              name: { type: 'string', description: 'Name of the template' },
+              description: { type: 'string', description: 'Description of the template' }
+            },
+            required: ['name']
+          }
+        },
+        {
+          name: 'get_template',
+          description: 'Get template details from json2video',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              apiKey: { type: 'string', description: 'json2video API key (optional, can also be set as environment variable JSON2VIDEO_API_KEY)' },
+              name: { type: 'string', description: 'Name of the template to search for' }
+            },
+            required: ['name']
+          }
+        },
+        {
+          name: 'list_templates',
+          description: 'List all available templates from json2video',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              apiKey: { type: 'string', description: 'json2video API key (optional, can also be set as environment variable JSON2VIDEO_API_KEY)' }
+            }
+          }
         }
       ]
     }));
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       try {
-        if (!['generate_video', 'get_video_status'].includes(request.params.name)) {
+        if (!['generate_video', 'get_video_status', 'create_template', 'get_template', 'list_templates'].includes(request.params.name)) {
           throw new McpError(
             ErrorCode.MethodNotFound,
             `Unknown tool: ${request.params.name}`
@@ -1512,59 +1549,24 @@ class Json2VideoServer {
           );
         }
 
-        if (request.params.name === 'generate_video') {
-          console.error(`[API] Generating video with args: ${JSON.stringify(args)}`);
-          const response = await fetch('https://api.json2video.com/v2/movies', {
-            method: 'POST',
-            headers: {
-              'x-api-key': apiKey,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(args)
-          });
-          const result = await response.json();
-
-          if (!result.success || !result.project) {
+        switch (request.params.name) {
+          case 'get_template':
+            return await getTemplate(args, apiKey);
+          case 'list_templates':
+            return await listTemplates(apiKey);
+          case 'create_template':
+            return await createTemplate(args, apiKey);
+          case 'generate_video':
+            return await generateVideo(args, apiKey);
+          case 'get_video_status':
+            return await getVideoStatus(args, apiKey);
+          default:
             throw new McpError(
-              ErrorCode.InternalError,
-              `json2video API error: ${JSON.stringify(result)}`
+              ErrorCode.MethodNotFound,
+              `Unknown tool: ${request.params.name}`
             );
-          }
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Video generation started. Project ID: ${result.project}`
-              }
-            ]
-          };
-        } else {
-          // get_video_status
-          console.error(`[API] Getting video status for project: ${args.project}`);
-          const url = `https://api.json2video.com/v2/movies?project=${args.project}`;
-          const response = await fetch(url, {
-            method: 'GET',
-            headers: { 'x-api-key': apiKey }
-          });
-          const result = await response.json();
-
-          if (!result.success) {
-            throw new McpError(
-              ErrorCode.InternalError,
-              `json2video API error: ${JSON.stringify(result)}`
-            );
-          }
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify(result, null, 2)
-              }
-            ]
-          };
         }
+        
       } catch (error) {
         if (error instanceof McpError) {
           console.error('[MCP Error]', error);
@@ -1575,6 +1577,154 @@ class Json2VideoServer {
           ErrorCode.InternalError,
           `Failed to process tool call: ${error.message}`
         );
+      }
+
+      // Ortak hata yönetimi fonksiyonu
+      function handleApiError(result, customMessage) {
+        if (!result.success) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            customMessage || `json2video API error: ${JSON.stringify(result)}`
+          );
+        }
+      }
+
+      async function getVideoStatus(args, apiKey) {
+        console.error(`[API] Getting video status for project: ${args.project}`);
+        const url = `${API_BASE}/movies?project=${args.project}`;
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'x-api-key': apiKey }
+        });
+        const result = await response.json();
+
+        handleApiError(result);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      }
+
+      async function generateVideo(args, apiKey) {
+        console.error(`[API] Generating video with args: ${JSON.stringify(args)}`);
+        const response = await fetch(`${API_BASE}/movies`, {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(args)
+        });
+        const result = await response.json();
+
+        handleApiError(result);
+        if (!result.project) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            `json2video API error: ${JSON.stringify(result)}`
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Video generation started. Project ID: ${result.project}`
+            }
+          ]
+        };
+      }
+
+      async function createTemplate(args, apiKey) {
+        console.error(`[API] Creating template with args: ${JSON.stringify(args)}`);
+        const response = await fetch(`${API_BASE}/templates`, {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: args.name,
+            description: args.description || `Template created at ${new Date().toISOString()}`
+          })
+        });
+        const result = await response.json();
+
+        handleApiError(result);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Template created successfully. Template ID: ${result.template}`
+            }
+          ]
+        };
+      }
+
+      async function listTemplates(apiKey) {
+        console.error('[API] Listing all templates');
+        const response = await fetch(`${API_BASE}/templates`, {
+          method: 'GET',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json',
+            'Accept': '*/*',
+            'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        const result = await response.json();
+
+        handleApiError(result);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result.templates, null, 2)
+            }
+          ]
+        };
+      }
+
+      async function getTemplate(args, apiKey) {
+        console.error(`[API] Getting template with name: ${args.name}`);
+        const response = await fetch(`${API_BASE}/templates`, {
+          method: 'GET',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json'
+          }
+        });
+        const result = await response.json();
+
+        handleApiError(result);
+
+        // Find template by name
+        const template = result.templates.find(t => t.name === args.name);
+
+        if (!template) {
+          throw new McpError(
+            ErrorCode.NotFound,
+            `Template with name "${args.name}" not found`
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(template, null, 2)
+            }
+          ]
+        };
       }
     });
   }
