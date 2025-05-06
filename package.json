@@ -1,21 +1,32 @@
 {
-  "name": "json2video-mcp",
-  "version": "1.2.3",
+  "name": "@omerrgocmen/json2video-mcp",
+  "version": "1.2.6",
   "description": "Model Context Protocol (MCP) server for json2video API integration.",
   "type": "module",
   "main": "index.js",
   "bin": {
-    "json2video-mcp": "./index.js"
+    "json2video-mcp": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "start": "node index.js"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc -w",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.0.1",
     "@types/node-fetch": "^2.6.12",
     "node-fetch": "^3.3.2"
   },
-  "keywords": ["mcp", "json2video", "video", "llm", "server"],
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "@types/node-fetch": "^2.6.12",
+    "typescript": "^5.3.3"
+  },
+  "keywords": ["mcp", "json2video", "video", "llm", "server", "model-context-protocol", "ai", "artificial-intelligence", "video-generation", "video-ai"],
   "author": "Ömer Göçmen",
   "license": "MIT"
 } 

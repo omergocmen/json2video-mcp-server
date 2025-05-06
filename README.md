@@ -20,19 +20,19 @@ A Model Context Protocol (MCP) server implementation for programmatically genera
 ### Running with npx
 
 ```bash
-env JSON2VIDEO_API_KEY=your_api_key_here npx -y json2video-mcp
+env JSON2VIDEO_API_KEY=your_api_key_here npx -y @omerrgocmen/json2video-mcp
 ```
 
 ### Manual Installation
 
 ```bash
-npm install -g json2video-mcp
+npm install -g @omerrgocmen/json2video-mcp
 ```
 
 ### Windows Users
 If you are on Windows and encounter issues, try:
 ```bash
-cmd /c "set JSON2VIDEO_API_KEY=your_api_key_here && npx -y json2video-mcp"
+cmd /c "set JSON2VIDEO_API_KEY=your_api_key_here && npx -y @omerrgocmen/json2video-mcp"
 ```
 
 ---
@@ -46,7 +46,7 @@ cmd /c "set JSON2VIDEO_API_KEY=your_api_key_here && npx -y json2video-mcp"
 4. Enter the following:
    - Name: "json2video-mcp" (or your preferred name)
    - Type: "command"
-   - Command: `env JSON2VIDEO_API_KEY=your_api_key_here npx -y json2video-mcp`
+   - Command: `env JSON2VIDEO_API_KEY=your_api_key_here npx -y @omerrgocmen/json2video-mcp`
 
 ### Cursor v0.48.6+
 1. Open Cursor Settings
@@ -58,7 +58,7 @@ cmd /c "set JSON2VIDEO_API_KEY=your_api_key_here && npx -y json2video-mcp"
      "mcpServers": {
        "json2video-mcp": {
          "command": "npx",
-         "args": ["-y", "json2video-mcp"],
+         "args": ["-y", "@omerrgocmen/json2video-mcp"],
          "env": {
            "JSON2VIDEO_API_KEY": "your_api_key_here"
          }
@@ -82,7 +82,7 @@ Add this to your `mcp.json` or similar config:
   "mcpServers": {
     "json2video-mcp": {
       "command": "npx",
-      "args": ["-y", "json2video-mcp"],
+      "args": ["-y", "@omerrgocmen/json2video-mcp"],
       "env": {
         "JSON2VIDEO_API_KEY": "your_api_key_here"
       }
@@ -102,6 +102,14 @@ Add this to your `mcp.json` or similar config:
 ### Environment Variables
 
 - `JSON2VIDEO_API_KEY` (required): Your json2video API key. Can be set as an environment variable or provided per request.
+
+---
+
+> **Note:** If you encounter a `client closed` error, run the following command in your terminal:
+>
+> ```bash
+> npm i @omerrgocmen/json2video-mcp
+> ```
 
 ---
 
