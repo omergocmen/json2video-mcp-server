@@ -1,14 +1,16 @@
 {
   "name": "@omerrgocmen/json2video-mcp",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "description": "Model Context Protocol (MCP) server for json2video API integration.",
   "type": "module",
-  "main": "index.js",
+  "main": "dist/index.js",
   "bin": {
     "json2video-mcp": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc",

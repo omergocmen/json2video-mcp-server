@@ -1,0 +1,35 @@
+src/
+.env
+.env.example
+
+# Development configs
+.git/
+.github/
+.gitignore
+.npmrc
+tsconfig.json
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Misc
+.DS_Store
+*.swp
+*.swo
+
+# Cursor specific
+.cursor
+.cursorrules
+.cursorignore
+.specstory
+checklist.md
+
+# Temporary files
+.tmp/
+.temp/
