@@ -1,21 +1,22 @@
-#!/usr/bin/env node
-
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { Server, ServerOptions } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
+  CallToolRequest,
 } from '@modelcontextprotocol/sdk/types.js';
-import fetch from 'node-fetch';
+import fetch, { Response as FetchResponse } from 'node-fetch';
 
-const API_BASE = 'https://api.json2video.com/v2';
+const API_BASE: string = 'https://api.json2video.com/v2';
 
 class Json2VideoServer {
   private server: Server;
 
   constructor() {
+    console.error('[Setup] Initializing json2video MCP server...');
+
     this.server = new Server(
       {
         name: 'json2video-mcp',
@@ -25,12 +26,12 @@ class Json2VideoServer {
         capabilities: {
           tools: {},
         },
-      }
+      } as ServerOptions
     );
 
     this.setupToolHandlers();
 
-    this.server.onerror = (error) => console.error('[Error]', error);
+    this.server.onerror = (error: any) => console.error('[Error]', error);
     process.on('SIGINT', async () => {
       await this.server.close();
       process.exit(0);
@@ -38,70 +39,131 @@ class Json2VideoServer {
   }
 
   setupToolHandlers() {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    this.server.setRequestHandler(ListToolsRequestSchema, async (): Promise<any> => ({
       tools: [
         {
           name: 'generate_video',
-          description: 'Creates a video project using the json2video API.',
+          description: 'Creates a video project using the json2video API. Each project can contain multiple scenes, and each scene can contain various elements such as text, images, video, audio, components, HTML, voice, audiogram, and subtitles. See https://json2video.com/docs/api/ for full schema.',
           inputSchema: {
             type: 'object',
+            description: 'Input for creating a video project. The main content is in the "scenes" array. See https://json2video.com/docs/api/ for full schema and examples.',
             properties: {
-              id: { type: 'string', description: 'Unique identifier for the project.' },
-              comment: { type: 'string' },
-              cache: { type: 'boolean' },
-              client_data: { type: 'object' },
-              draft: { type: 'boolean' },
+              id: {
+                type: "string",
+                description: "Unique identifier for the movie project. If not provided, a random string will be generated."
+              },
+              comment: {
+                type: "string",
+                description: "A comment or description for the movie project."
+              },
+              cache: {
+                type: "boolean",
+                description: "Use the cached version of the movie if available. Default: true."
+              },
+              client_data: {
+                type: "object",
+                description: "Key-value pairs included in the response and webhooks. Used to pass information to later workflow steps."
+              },
+              draft: {
+                type: "boolean",
+                description: "If true, adds a watermark to the movie. Free plans must set draft to true."
+              },
               quality: {
-                type: 'string',
-                enum: ['low', 'medium', 'high'],
-                default: 'high',
+                type: "string",
+                description: "Quality of the final rendered movie. Use for speed/quality tradeoff.",
+                enum: ["low", "medium", "high"],
+                default: "high"
               },
               resolution: {
-                type: 'string',
+                type: "string",
+                description: "Preset resolution. Use \"custom\" to set width/height manually.",
                 enum: [
-                  'sd',
-                  'hd',
-                  'full-hd',
-                  'squared',
-                  'instagram-story',
-                  'instagram-feed',
-                  'twitter-landscape',
-                  'twitter-portrait',
-                  'custom',
+                  "sd",
+                  "hd",
+                  "full-hd",
+                  "squared",
+                  "instagram-story",
+                  "instagram-feed",
+                  "twitter-landscape",
+                  "twitter-portrait",
+                  "custom"
                 ],
-                default: 'custom',
+                default: "custom"
               },
-              width: { type: 'integer' },
-              height: { type: 'integer' },
-              variables: { type: 'object' },
+              width: {
+                type: "integer",
+                description: "Width of the movie (pixels). Only if resolution is \"custom\". Min: 50, Max: 3840."
+              },
+              height: {
+                type: "integer",
+                description: "Height of the movie (pixels). Only if resolution is \"custom\". Min: 50, Max: 3840."
+              },
+              variables: {
+                type: "object",
+                description: "Global variables for use in templates/components. Variable names: letters, numbers, underscores."
+              },
               elements: {
-                type: 'array',
-                items: { type: 'object' },
+                type: "array",
+                description: "Global elements not tied to a specific scene. Each element can be of type video, image, text, html, component, audio, voice, audiogram, subtitles.",
+                items: {
+                  type: "object",
+                  description: "Element object. See element schemas below."
+                }
               },
               scenes: {
-                type: 'array',
+                type: "array",
+                description: "List of scenes in the video. Each scene contains an array of elements.",
                 items: {
-                  type: 'object',
+                  type: "object",
+                  description: "Scene object.",
                   properties: {
-                    id: { type: 'string' },
-                    comment: { type: 'string' },
-                    background_color: { type: 'string' },
-                    cache: { type: 'boolean' },
-                    condition: { type: 'string' },
-                    duration: { type: 'number' },
-                    variables: { type: 'object' },
-                    elements: {
-                      type: 'array',
-                      items: { type: 'object' },
+                    id: {
+                      type: "string",
+                      description: "Unique identifier for the scene."
                     },
+                    comment: {
+                      type: "string",
+                      description: "Description or comment for the scene."
+                    },
+                    background_color: {
+                      type: "string",
+                      description: "Hex color or \"transparent\". Default: #000000."
+                    },
+                    cache: {
+                      type: "boolean",
+                      description: "Use cached version of the scene if available."
+                    },
+                    condition: {
+                      type: "string",
+                      description: "Condition for rendering the scene. If false/empty, scene is skipped."
+                    },
+                    duration: {
+                      type: "number",
+                      description: "Scene duration in seconds. -1 means auto."
+                    },
+                    variables: {
+                      type: "object",
+                      description: "Local variables for the scene."
+                    },
+                    elements: {
+                      type: "array",
+                      description: "List of elements in the scene. Each element can be of type video, image, text, html, component, audio, voice, audiogram, subtitles.",
+                      items: {
+                        type: "object",
+                        description: "Element object. See element schemas below."
+                      }
+                    }
                   },
-                  required: ['elements'],
-                },
+                  required: ["elements"]
+                }
               },
-              apiKey: { type: 'string' },
+              apiKey: {
+                type: "string",
+                description: "json2video API key (optional, can also be set as environment variable JSON2VIDEO_API_KEY)"
+              }
             },
             required: ['scenes'],
-            examples: [
+            xamples: [
               {
                 "id": "qkpl87ib",
                 "resolution": "full-hd",
@@ -1416,20 +1478,21 @@ class Json2VideoServer {
                 "settings": {},
                 "cache": true
               }
-            ],
-          },
-        },
+            ]
+            // For LLMs: See https://json2video.com/docs/api/ for full details on each element type (video, image, text, html, component, audio, voice, audiogram, subtitles). Each element type has its own properties. For example, a text element requires "type: text" and "text" fields, a video element requires "type: video" and "src" fields, etc.
+          }
+        }, // Added type assertion for clarity
         {
           name: 'get_video_status',
           description: 'Get the status or result of a generated video',
           inputSchema: {
             type: 'object',
             properties: {
-              apiKey: { type: 'string' },
-              project: { type: 'string' },
+              apiKey: { type: 'string', description: 'json2video API key (optional, can also be set as environment variable JSON2VIDEO_API_KEY)' },
+              project: { type: 'string', description: 'Project ID from video generation' }
             },
-            required: ['project'],
-          },
+            required: ['project']
+          }
         },
         {
           name: 'create_template',
@@ -1437,12 +1500,12 @@ class Json2VideoServer {
           inputSchema: {
             type: 'object',
             properties: {
-              apiKey: { type: 'string' },
-              name: { type: 'string' },
-              description: { type: 'string' },
+              apiKey: { type: 'string', description: 'json2video API key (optional, can also be set as environment variable JSON2VIDEO_API_KEY)' },
+              name: { type: 'string', description: 'Name of the template' },
+              description: { type: 'string', description: 'Description of the template' }
             },
-            required: ['name'],
-          },
+            required: ['name']
+          }
         },
         {
           name: 'get_template',
@@ -1450,11 +1513,11 @@ class Json2VideoServer {
           inputSchema: {
             type: 'object',
             properties: {
-              apiKey: { type: 'string' },
-              name: { type: 'string' },
+              apiKey: { type: 'string', description: 'json2video API key (optional, can also be set as environment variable JSON2VIDEO_API_KEY)' },
+              name: { type: 'string', description: 'Name of the template to search for' }
             },
-            required: ['name'],
-          },
+            required: ['name']
+          }
         },
         {
           name: 'list_templates',
@@ -1462,143 +1525,230 @@ class Json2VideoServer {
           inputSchema: {
             type: 'object',
             properties: {
-              apiKey: { type: 'string' },
-            },
-          },
-        },
-      ],
+              apiKey: { type: 'string', description: 'json2video API key (optional, can also be set as environment variable JSON2VIDEO_API_KEY)' }
+            }
+          }
+        }
+      ]
     }));
 
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const args = request.params.arguments || {};
-      const apiKey = (args.apiKey || process.env.JSON2VIDEO_API_KEY) as string;
-
-      if (!apiKey) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          'API key is required (either in arguments or as environment variable JSON2VIDEO_API_KEY)'
-        );
-      }
-
-      const tools = {
-        get_template: getTemplate,
-        list_templates: listTemplates,
-        create_template: createTemplate,
-        generate_video: generateVideo,
-        get_video_status: getVideoStatus,
-      };
-
-      const toolFn = tools[request.params.name as keyof typeof tools];
-
-      if (!toolFn) {
-        throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
-      }
-
+    this.server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<any> => {
       try {
-        return await toolFn(args, apiKey);
+        if (!['generate_video', 'get_video_status', 'create_template', 'get_template', 'list_templates'].includes(request.params.name)) {
+          throw new McpError(
+            ErrorCode.MethodNotFound,
+            `Unknown tool: ${request.params.name}`
+          );
+        }
+
+        const args: Record<string, any> = request.params.arguments || {};
+        const apiKey: string | undefined = args.apiKey || process.env.JSON2VIDEO_API_KEY;
+        if (!apiKey) {
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            'API key is required (either in arguments or as environment variable JSON2VIDEO_API_KEY)'
+          );
+        }
+
+        switch (request.params.name) {
+          case 'get_template':
+            return await getTemplate(args, apiKey);
+          case 'list_templates':
+            return await listTemplates(apiKey);
+          case 'create_template':
+            return await createTemplate(args, apiKey);
+          case 'generate_video':
+            return await generateVideo(args, apiKey);
+          case 'get_video_status':
+            return await getVideoStatus(args, apiKey);
+          default:
+            throw new McpError(
+              ErrorCode.MethodNotFound,
+              `Unknown tool: ${request.params.name}`
+            );
+        }
+        
       } catch (error: any) {
         if (error instanceof McpError) {
           console.error('[MCP Error]', error);
           throw error;
         }
         console.error('[Error] Tool call failed:', error);
-        throw new McpError(ErrorCode.InternalError, `Failed to process tool call: ${error.message}`);
+        throw new McpError(
+          ErrorCode.InternalError,
+          `Failed to process tool call: ${error.message}`
+        );
+      }
+
+      // Ortak hata yönetimi fonksiyonu
+      function handleApiError(result: any, customMessage?: string): void {
+        if (!result.success) {
+          throw new McpError(
+            ErrorCode.InternalError,
+            customMessage || `json2video API error: ${JSON.stringify(result)}`
+          );
+        }
+      }
+
+      async function getVideoStatus(args: Record<string, any>, apiKey: string): Promise<any> {
+        console.error(`[API] Getting video status for project: ${args.project}`);
+        const url = `${API_BASE}/movies?project=${args.project}`;
+        const response: FetchResponse = await fetch(url, {
+          method: 'GET',
+          headers: { 'x-api-key': apiKey }
+        });
+        const result: any = await response.json();
+
+        handleApiError(result);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      }
+
+      async function generateVideo(args: Record<string, any>, apiKey: string): Promise<any> {
+        console.error(`[API] Generating video with args: ${JSON.stringify(args)}`);
+        const response: FetchResponse = await fetch(`${API_BASE}/movies`, {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(args)
+        });
+        const result: any = await response.json();
+
+        handleApiError(result); // This might throw if result.success is false
+        if (!result.project) { // This check implies result.success might not be the only indicator or might not exist for all errors
+          throw new McpError(
+            ErrorCode.InternalError,
+            `json2video API error: ${JSON.stringify(result)}`
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Video generation started. Project ID: ${result.project}`
+            }
+          ]
+        };
+      }
+
+      async function createTemplate(args: Record<string, any>, apiKey: string): Promise<any> {
+        console.error(`[API] Creating template with args: ${JSON.stringify(args)}`);
+        const response: FetchResponse = await fetch(`${API_BASE}/templates`, {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: args.name,
+            description: args.description || `Template created at ${new Date().toISOString()}`
+          })
+        });
+        const result: any = await response.json();
+        handleApiError(result); // This might throw if result.success is false
+        // Assuming result.template exists on success, similar to result.project in generateVideo
+        if (!result.template) { 
+             throw new McpError(
+                ErrorCode.InternalError,
+                `json2video API error on template creation: ${JSON.stringify(result)}`
+             );
+        }
+
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Template created successfully. Template ID: ${result.template}`
+            }
+          ]
+        };
+      }
+
+      async function listTemplates(apiKey: string): Promise<any> {
+        console.error('[API] Listing all templates');
+        const response: FetchResponse = await fetch(`${API_BASE}/templates`, {
+          method: 'GET',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json'
+          }
+        });
+        const result: any = await response.json();
+
+        handleApiError(result); // This might throw if result.success is false
+        // Assuming result.templates exists on success
+        if (!result.templates) {
+            throw new McpError(
+                ErrorCode.InternalError,
+                `json2video API error listing templates: ${JSON.stringify(result)}`
+            );
+        }
+
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result.templates, null, 2)
+            }
+          ]
+        };
+      }
+
+      async function getTemplate(args: Record<string, any>, apiKey: string): Promise<any> {
+        console.error(`[API] Getting template with name: ${args.name}`);
+        const response: FetchResponse = await fetch(`${API_BASE}/templates`, {
+          method: 'GET',
+          headers: {
+            'x-api-key': apiKey,
+            'Content-Type': 'application/json'
+          }
+        });
+        const result: any = await response.json();
+
+        handleApiError(result); // This might throw if result.success is false
+        
+        if (!result.templates || !Array.isArray(result.templates)) {
+             throw new McpError(
+                ErrorCode.InternalError,
+                `json2video API error fetching templates: Invalid response format ${JSON.stringify(result)}`
+             );
+        }
+
+        // Find template by name
+        const template = result.templates.find((t: any) => t.name === args.name);
+
+        if (!template) {
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            `Template with name "${args.name}" not found`
+          );
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(template, null, 2)
+            }
+          ]
+        };
       }
     });
-
-    function handleApiError(result: any, customMessage?: string) {
-      if (!result.success) {
-        throw new McpError(ErrorCode.InternalError, customMessage || `json2video API error: ${JSON.stringify(result)}`);
-      }
-    }
-
-    async function getVideoStatus(args: any, apiKey: string) {
-      const url = `${API_BASE}/movies?project=${args.project}`;
-      const res = await fetch(url, {
-        method: 'GET',
-        headers: { 'x-api-key': apiKey },
-      });
-      const result = await res.json();
-      handleApiError(result);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
-    }
-
-    async function generateVideo(args: any, apiKey: string) {
-      const res = await fetch(`${API_BASE}/movies`, {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(args),
-      });
-      const result = await res.json() as any;
-      handleApiError(result);
-      return {
-        content: [{ type: 'text', text: `Video generation started. Project ID: ${result.project}` }],
-      };
-    }
-
-    async function createTemplate(args: any, apiKey: string) {
-      const res = await fetch(`${API_BASE}/templates`, {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: args.name,
-          description: args.description || `Template created at ${new Date().toISOString()}`,
-        }),
-      });
-      const result = await res.json() as any;
-      handleApiError(result);
-      return {
-        content: [{ type: 'text', text: `Template created successfully. Template ID: ${result.template}` }],
-      };
-    }
-
-    async function listTemplates(apiKey: string) {
-      const res = await fetch(`${API_BASE}/templates`, {
-        method: 'GET',
-        headers: {
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-      });
-      const result = await res.json() as any;
-      handleApiError(result);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result.templates, null, 2) }],
-      };
-    }
-
-    async function getTemplate(args: any, apiKey: string) {
-      const res = await fetch(`${API_BASE}/templates`, {
-        method: 'GET',
-        headers: {
-          'x-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-      });
-      const result = await res.json() as any;
-      handleApiError(result);
-
-      const template = result.templates.find((t: any) => t.name === args.name);
-
-      if (!template) {
-        throw new McpError(ErrorCode.InvalidRequest, `Template with name "${args.name}" not found`);
-      }
-
-      return {
-        content: [{ type: 'text', text: JSON.stringify(template, null, 2) }],
-      };
-    }
   }
 
-  async run() {
+  async run(): Promise<void> {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
     console.error('json2video MCP server running on stdio');
