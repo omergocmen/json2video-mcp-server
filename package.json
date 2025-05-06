@@ -1,6 +1,6 @@
 {
   "name": "@omerrgocmen/json2video-mcp",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "Model Context Protocol (MCP) server for json2video API integration.",
   "type": "module",
   "main": "index.js",

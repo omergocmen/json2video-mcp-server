@@ -20,7 +20,7 @@ class Json2VideoServer {
     this.server = new Server(
       {
         name: 'json2video-mcp',
-        version: '1.2.6',
+        version: '1.2.7',
       },
       {
         capabilities: {
