@@ -1,37 +1,35 @@
-import { Server, ServerOptions } from '@modelcontextprotocol/sdk/server/index.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
   ErrorCode,
   ListToolsRequestSchema,
   McpError,
-  CallToolRequest,
 } from '@modelcontextprotocol/sdk/types.js';
-import fetch, { Response as FetchResponse } from 'node-fetch';
+import fetch from 'node-fetch';
 
-const API_BASE: string = 'https://api.json2video.com/v2';
+const API_BASE = 'https://api.json2video.com/v2';
 
 class Json2VideoServer {
-  private server: Server;
-
+  server = null;
   constructor() {
     console.error('[Setup] Initializing json2video MCP server...');
 
     this.server = new Server(
       {
         name: 'json2video-mcp',
-        version: '1.2.9',
+        version: '1.3.0',
       },
       {
         capabilities: {
           tools: {},
         },
-      } as ServerOptions
+      }
     );
 
     this.setupToolHandlers();
 
-    this.server.onerror = (error: any) => console.error('[Error]', error);
+    this.server.onerror = (error) => console.error('[Error]', error);
     process.on('SIGINT', async () => {
       await this.server.close();
       process.exit(0);
@@ -39,7 +37,7 @@ class Json2VideoServer {
   }
 
   setupToolHandlers() {
-    this.server.setRequestHandler(ListToolsRequestSchema, async (): Promise<any> => ({
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
           name: 'generate_video',
@@ -1478,10 +1476,10 @@ class Json2VideoServer {
                 "settings": {},
                 "cache": true
               }
-            ]
+            ],
             // For LLMs: See https://json2video.com/docs/api/ for full details on each element type (video, image, text, html, component, audio, voice, audiogram, subtitles). Each element type has its own properties. For example, a text element requires "type: text" and "text" fields, a video element requires "type: video" and "src" fields, etc.
           }
-        }, // Added type assertion for clarity
+        },
         {
           name: 'get_video_status',
           description: 'Get the status or result of a generated video',
@@ -1532,7 +1530,7 @@ class Json2VideoServer {
       ]
     }));
 
-    this.server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<any> => {
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       try {
         if (!['generate_video', 'get_video_status', 'create_template', 'get_template', 'list_templates'].includes(request.params.name)) {
           throw new McpError(
@@ -1541,8 +1539,8 @@ class Json2VideoServer {
           );
         }
 
-        const args: Record<string, any> = request.params.arguments || {};
-        const apiKey: string | undefined = args.apiKey || process.env.JSON2VIDEO_API_KEY;
+        const args = request.params.arguments || {};
+        const apiKey = args.apiKey || process.env.JSON2VIDEO_API_KEY;
         if (!apiKey) {
           throw new McpError(
             ErrorCode.InvalidParams,
@@ -1568,7 +1566,7 @@ class Json2VideoServer {
             );
         }
         
-      } catch (error: any) {
+      } catch (error) {
         if (error instanceof McpError) {
           console.error('[MCP Error]', error);
           throw error;
@@ -1581,7 +1579,7 @@ class Json2VideoServer {
       }
 
       // Ortak hata yönetimi fonksiyonu
-      function handleApiError(result: any, customMessage?: string): void {
+      function handleApiError(result, customMessage) {
         if (!result.success) {
           throw new McpError(
             ErrorCode.InternalError,
@@ -1590,16 +1588,16 @@ class Json2VideoServer {
         }
       }
 
-      async function getVideoStatus(args: Record<string, any>, apiKey: string): Promise<any> {
+      async function getVideoStatus(args, apiKey) {
         console.error(`[API] Getting video status for project: ${args.project}`);
         const url = `${API_BASE}/movies?project=${args.project}`;
-        const response: FetchResponse = await fetch(url, {
+        const response = await fetch(url, {
           method: 'GET',
           headers: { 'x-api-key': apiKey }
         });
-        const result: any = await response.json();
+        const result = await response.json();
 
-        handleApiError(result);
+        handleApiError(result, `json2video API error: ${JSON.stringify(result)}`);
 
         return {
           content: [
@@ -1611,9 +1609,9 @@ class Json2VideoServer {
         };
       }
 
-      async function generateVideo(args: Record<string, any>, apiKey: string): Promise<any> {
+      async function generateVideo(args, apiKey) {
         console.error(`[API] Generating video with args: ${JSON.stringify(args)}`);
-        const response: FetchResponse = await fetch(`${API_BASE}/movies`, {
+        const response = await fetch(`${API_BASE}/movies`, {
           method: 'POST',
           headers: {
             'x-api-key': apiKey,
@@ -1621,10 +1619,10 @@ class Json2VideoServer {
           },
           body: JSON.stringify(args)
         });
-        const result: any = await response.json();
+        const result = await response.json() as { project: string };
 
-        handleApiError(result); // This might throw if result.success is false
-        if (!result.project) { // This check implies result.success might not be the only indicator or might not exist for all errors
+        handleApiError(result, `json2video API error: ${JSON.stringify(result)}`);
+        if (!result.project) {
           throw new McpError(
             ErrorCode.InternalError,
             `json2video API error: ${JSON.stringify(result)}`
@@ -1641,9 +1639,9 @@ class Json2VideoServer {
         };
       }
 
-      async function createTemplate(args: Record<string, any>, apiKey: string): Promise<any> {
+      async function createTemplate(args, apiKey) {
         console.error(`[API] Creating template with args: ${JSON.stringify(args)}`);
-        const response: FetchResponse = await fetch(`${API_BASE}/templates`, {
+        const response = await fetch(`${API_BASE}/templates`, {
           method: 'POST',
           headers: {
             'x-api-key': apiKey,
@@ -1654,16 +1652,9 @@ class Json2VideoServer {
             description: args.description || `Template created at ${new Date().toISOString()}`
           })
         });
-        const result: any = await response.json();
-        handleApiError(result); // This might throw if result.success is false
-        // Assuming result.template exists on success, similar to result.project in generateVideo
-        if (!result.template) { 
-             throw new McpError(
-                ErrorCode.InternalError,
-                `json2video API error on template creation: ${JSON.stringify(result)}`
-             );
-        }
+        const result = await response.json() as { template: string };
 
+        handleApiError(result, `json2video API error: ${JSON.stringify(result)}`);
 
         return {
           content: [
@@ -1675,26 +1666,22 @@ class Json2VideoServer {
         };
       }
 
-      async function listTemplates(apiKey: string): Promise<any> {
+      async function listTemplates(apiKey) {
         console.error('[API] Listing all templates');
-        const response: FetchResponse = await fetch(`${API_BASE}/templates`, {
+        const response = await fetch(`${API_BASE}/templates`, {
           method: 'GET',
           headers: {
             'x-api-key': apiKey,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': '*/*',
+            'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
           }
         });
-        const result: any = await response.json();
+        const result = await response.json() as { templates: string[] };
 
-        handleApiError(result); // This might throw if result.success is false
-        // Assuming result.templates exists on success
-        if (!result.templates) {
-            throw new McpError(
-                ErrorCode.InternalError,
-                `json2video API error listing templates: ${JSON.stringify(result)}`
-            );
-        }
-
+        handleApiError(result, `json2video API error: ${JSON.stringify(result)}`);
 
         return {
           content: [
@@ -1706,32 +1693,25 @@ class Json2VideoServer {
         };
       }
 
-      async function getTemplate(args: Record<string, any>, apiKey: string): Promise<any> {
+      async function getTemplate(args, apiKey) {
         console.error(`[API] Getting template with name: ${args.name}`);
-        const response: FetchResponse = await fetch(`${API_BASE}/templates`, {
+        const response = await fetch(`${API_BASE}/templates`, {
           method: 'GET',
           headers: {
             'x-api-key': apiKey,
             'Content-Type': 'application/json'
           }
         });
-        const result: any = await response.json();
+        const result = await response.json() as { templates: { name: string }[] };
 
-        handleApiError(result); // This might throw if result.success is false
-        
-        if (!result.templates || !Array.isArray(result.templates)) {
-             throw new McpError(
-                ErrorCode.InternalError,
-                `json2video API error fetching templates: Invalid response format ${JSON.stringify(result)}`
-             );
-        }
+        handleApiError(result, `json2video API error: ${JSON.stringify(result)}`);
 
         // Find template by name
-        const template = result.templates.find((t: any) => t.name === args.name);
+        const template = result.templates.find(template => template.name === args.name);
 
         if (!template) {
           throw new McpError(
-            ErrorCode.InvalidRequest,
+            ErrorCode.MethodNotFound,
             `Template with name "${args.name}" not found`
           );
         }
@@ -1748,7 +1728,7 @@ class Json2VideoServer {
     });
   }
 
-  async run(): Promise<void> {
+  async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
     console.error('json2video MCP server running on stdio');
