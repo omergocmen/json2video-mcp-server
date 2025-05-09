@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -18,7 +19,7 @@ class Json2VideoServer {
     this.server = new Server(
       {
         name: 'json2video-mcp',
-        version: '1.3.0',
+        version: '1.3.1',
       },
       {
         capabilities: {
