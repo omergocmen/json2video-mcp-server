@@ -39,7 +39,7 @@ cmd /c "set JSON2VIDEO_API_KEY=your_api_key_here && npx -y @omerrgocmen/json2vid
 
 ## Running on Cursor
 
-### Cursor v0.45.6+
+### Cursor v0.48.6+
 1. Open Cursor Settings
 2. Go to Features > MCP Servers
 3. Click "+ Add New MCP Server"
